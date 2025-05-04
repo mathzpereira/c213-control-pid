@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <title>Comparação de Resposta</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+    }
+
+    canvas {
+      max-width: 100%;
+      height: auto;
+    }
+
+    #loadButton {
+      padding: 10px 20px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <h1>Comparação de Resposta Real x Simulada</h1>
+  <button id="loadButton">Carregar gráfico</button>
+  <canvas id="responseChart"></canvas>
+
+  <script>
+    document.getElementById("loadButton").addEventListener("click", async () => {
+      try {
+        const response = await fetch("http://localhost:8000/compare_response");
+        const data = await response.json();
+
+        const ctx = document.getElementById("responseChart").getContext("2d");
+
+        new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels: data.tempo,
+            datasets: [
+              {
+                label: 'Resposta Real',
+                data: data.resposta_real,
+                borderColor: 'blue',
+                fill: false,
+              },
+              {
+                label: 'Resposta Simulada',
+                data: data.resposta_modelo,
+                borderColor: 'red',
+                borderDash: [5, 5],
+                fill: false,
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            scales: {
+              x: {
+                title: { display: true, text: 'Tempo (s)' }
+              },
+              y: {
+                title: { display: true, text: 'Temperatura (°C)' }
+              }
+            }
+          }
+        });
+
+      } catch (error) {
+        alert("Erro ao buscar dados da API: " + error);
+      }
+    });
+  </script>
+</body>
+</html>
