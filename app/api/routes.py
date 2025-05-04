@@ -35,12 +35,7 @@ async def identify_model(method: str = Query(...)):
     Endpoint para identificar os parâmetros k, tau e theta a partir do método escolhido.
     """
     try:
-        k, tau, theta = service.identification_method(
-            method=method,
-            time=service._time,
-            temperature=service._temperature,
-            step=service._step,
-        )
+        k, tau, theta = service.identification_method(method=method)
         service._k, service._tau, service._theta = k, tau, theta
         return {
             "mensagem": "Modelo identificado com sucesso.",
@@ -50,3 +45,23 @@ async def identify_model(method: str = Query(...)):
         }
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Erro na identificação: {str(e)}")
+
+
+@router.get("/compare_response")
+def compare_response():
+    """
+    Retorna a resposta real e a resposta simulada do modelo de primeira ordem.
+    """
+    try:
+        real = service._temperature.tolist()
+        simulated = service.simulate_model_response().tolist()
+        time = service._time.tolist()
+
+        return {
+            "mensagem": "Comparação gerada com sucesso.",
+            "tempo": time,
+            "resposta_real": real,
+            "resposta_modelo": simulated,
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao comparar: {str(e)}")
