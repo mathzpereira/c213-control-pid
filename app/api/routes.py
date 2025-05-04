@@ -1,29 +1,52 @@
-from fastapi import APIRouter, UploadFile, File, HTTPException
+from fastapi import APIRouter, Query, UploadFile, File, HTTPException
 from scipy.io import loadmat
-import io
+from app.api.services import PidService
 
 router = APIRouter()
+
+service = PidService()
 
 
 @router.post("/import_dataset")
 async def import_dataset(file: UploadFile = File(...)):
     """
-    Endpoint to import a dataset file (.mat format).
+    Endpoint para importar um arquivo de dataset no formato .mat.
     """
     if not file.filename.endswith(".mat"):
         raise HTTPException(status_code=400, detail="Apenas arquivos .mat são aceitos.")
 
     try:
         mat_data = loadmat(file.file)
+        load_result = service.load_dataset(mat_data)
 
-        variables = {
-            key: value for key, value in mat_data.items() if not key.startswith("__")
-        }
         return {
-            "message": "Dataset importado com sucesso.",
-            "variables": list(variables.keys()),
+            "mensagem": "Dataset importado e processado com sucesso.",
+            "detalhes": load_result,
         }
     except Exception as e:
         raise HTTPException(
-            status_code=500, detail=f"Erro processando o arquivo: {str(e)}"
+            status_code=500, detail=f"Erro ao processar o arquivo: {str(e)}"
         )
+
+
+@router.post("/identify_model")
+async def identify_model(method: str = Query(...)):
+    """
+    Endpoint para identificar os parâmetros k, tau e theta a partir do método escolhido.
+    """
+    try:
+        k, tau, theta = service.identification_method(
+            method=method,
+            time=service._time,
+            temperature=service._temperature,
+            step=service._step,
+        )
+        service._k, service._tau, service._theta = k, tau, theta
+        return {
+            "mensagem": "Modelo identificado com sucesso.",
+            "k": k,
+            "tau": tau,
+            "theta": theta,
+        }
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Erro na identificação: {str(e)}")
