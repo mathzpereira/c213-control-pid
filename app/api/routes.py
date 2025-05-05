@@ -65,3 +65,21 @@ def compare_response():
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erro ao comparar: {str(e)}")
+
+
+@router.get("/tune_pid")
+def tune_pid(
+    method: str = Query(..., description="Método de sintonia: 'imc' ou 'itae'"),
+):
+    """
+    Realiza a sintonia PID com base no método fornecido (IMC ou ITAE).
+    """
+    try:
+        result = service.tune_pid(method)
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Erro interno na sintonia: {str(e)}"
+        )

@@ -106,3 +106,41 @@ class PidService:
                 response[i] = 0
 
         return response
+
+    def tune_pid(self, method: str) -> dict:
+        """
+        Realiza a sintonia PID com base no método especificado.
+
+        Retorna os parâmetros PID ajustados (kp, ti, td) e uma mensagem de sucesso.
+
+        """
+        if self._k == 0 or self._tau == 0:
+            raise ValueError(
+                "Modelo não identificado. Use a identificação antes da sintonia."
+            )
+
+        k = self._k
+        tau = self._tau
+        theta = self._theta
+
+        if method.lower() == "imc":
+            lambda_ = tau
+
+            kp = (2 * tau + theta) / (k * (2 * lambda_ + theta))
+            ti = (theta / 2) + tau
+            td = (tau * theta) / (2 * tau + theta)
+
+        elif method.lower() == "itae":
+            kp = (0.965 / k) * (tau / theta) ** (-0.85)
+            ti = tau / (0.796 + (-0.147 * (theta / tau)))
+            td = tau * 0.308 * (theta / tau) ** 0.929
+
+        else:
+            raise ValueError("Método não suportado. Use 'imc' ou 'itae'.")
+
+        return {
+            "mensagem": f"Sintonia PID realizada com sucesso pelo método {method.upper()}.",
+            "kp": round(kp, 4),
+            "ti": round(ti, 4),
+            "td": round(td, 4),
+        }
