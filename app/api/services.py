@@ -1,5 +1,6 @@
 import numpy as np
 from numpy import ndarray
+import control as ctrl
 
 
 class PidService:
@@ -144,3 +145,16 @@ class PidService:
             "ti": round(ti, 4),
             "td": round(td, 4),
         }
+
+    def get_delayed_transfer_function(self):
+        """
+        Retorna a função de transferência com atraso (retardo) aproximado por Padé.
+        """
+        G = ctrl.tf([self._k], [self._tau, 1])
+
+        num_pade, den_pade = ctrl.pade(self._theta, 1)
+        delay = ctrl.tf(num_pade, den_pade)
+
+        G_delay = G * delay
+
+        return G_delay

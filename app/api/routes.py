@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Query, UploadFile, File, HTTPException
 from scipy.io import loadmat
 import control as ctrl
+import numpy as np
 from app.api.services import PidService
 
 router = APIRouter()
@@ -101,24 +102,53 @@ def get_transfer_function():
         den = [tau, 1]
         G = ctrl.tf(num, den)
 
-        # Aplica aproximação de Padé se houver atraso
         if theta > 0:
-            num_pade, den_pade = ctrl.pade(theta, 1)
-            delay = ctrl.tf(num_pade, den_pade)
-            G_total = G * delay
+            G_total = service.get_delayed_transfer_function()
         else:
             G_total = G
-            num_pade, den_pade = [1], [1]
 
         return {
             "mensagem": "Função de transferência gerada com sucesso.",
             "numerador": list(G_total.num[0][0]),
             "denominador": list(G_total.den[0][0]),
-            "pade_numerador": num_pade,
-            "pade_denominador": den_pade,
         }
 
     except Exception as e:
         raise HTTPException(
             status_code=500, detail=f"Erro ao gerar função de transferência: {str(e)}"
+        )
+
+
+@router.get("/closed_loop")
+def closed_loop_response(
+    method: str = Query(..., description="Método de sintonia: imc ou itae"),
+):
+    """
+    Retorna a resposta da malha fechada com base na sintonia PID escolhida.
+    """
+    try:
+        response = service.tune_pid(method)
+        kp = response["kp"]
+        ti = response["ti"]
+        td = response["td"]
+
+        controller = ctrl.tf([kp * td * ti, kp * ti, kp], [ti, 0])
+        process = service.get_delayed_transfer_function()
+        closed_loop = ctrl.feedback(controller * process)
+
+        t_out, y_out = ctrl.forced_response(
+            closed_loop,
+            T=np.array(service._time, dtype=float),
+            U=np.array(service._step, dtype=float),
+        )
+
+        return {
+            "mensagem": f"Resposta da malha fechada com sintonia '{method}' gerada com sucesso.",
+            "tempo": t_out.tolist(),
+            "resposta": y_out.tolist(),
+        }
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Erro na resposta em malha fechada: {str(e)}"
         )
