@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Query, UploadFile, File, HTTPException
 from scipy.io import loadmat
+import control as ctrl
 from app.api.services import PidService
 
 router = APIRouter()
@@ -82,4 +83,42 @@ def tune_pid(
     except Exception as e:
         raise HTTPException(
             status_code=500, detail=f"Erro interno na sintonia: {str(e)}"
+        )
+
+
+@router.get("/transfer_function")
+def get_transfer_function():
+    """
+    Retorna os coeficientes da função de transferência com aproximação de Padé.
+    """
+    try:
+        parameters = service.get_parameters()
+        k = parameters["k"]
+        tau = parameters["tau"]
+        theta = parameters["theta"]
+
+        num = [k]
+        den = [tau, 1]
+        G = ctrl.tf(num, den)
+
+        # Aplica aproximação de Padé se houver atraso
+        if theta > 0:
+            num_pade, den_pade = ctrl.pade(theta, 1)
+            delay = ctrl.tf(num_pade, den_pade)
+            G_total = G * delay
+        else:
+            G_total = G
+            num_pade, den_pade = [1], [1]
+
+        return {
+            "mensagem": "Função de transferência gerada com sucesso.",
+            "numerador": list(G_total.num[0][0]),
+            "denominador": list(G_total.den[0][0]),
+            "pade_numerador": num_pade,
+            "pade_denominador": den_pade,
+        }
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Erro ao gerar função de transferência: {str(e)}"
         )
