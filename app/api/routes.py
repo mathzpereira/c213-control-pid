@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Query, UploadFile, File, HTTPException
+from typing import Optional
+from fastapi import APIRouter, Body, Query, UploadFile, File, HTTPException
 from scipy.io import loadmat
 import control as ctrl
 import numpy as np
@@ -72,12 +73,17 @@ def compare_response():
 @router.get("/tune_pid")
 def tune_pid(
     method: str = Query(..., description="Método de sintonia: 'imc' ou 'itae'"),
+    lambda_: Optional[float] = Query(
+        None,
+        alias="lambda",
+        description="Parâmetro lambda para sintonia IMC (opcional)",
+    ),
 ):
     """
     Realiza a sintonia PID com base no método fornecido (IMC ou ITAE).
     """
     try:
-        result = service.tune_pid(method)
+        result = service.tune_pid(method=method, lambda_=lambda_)
         return result
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -183,3 +189,36 @@ def open_loop_response(
         raise HTTPException(
             status_code=500, detail=f"Erro na resposta em malha aberta: {str(e)}"
         )
+
+
+@router.post("/custom_pid_simulation")
+def custom_pid_simulation(
+    kp: float = Body(..., embed=True),
+    ti: float = Body(..., embed=True),
+    td: float = Body(..., embed=True),
+    setpoint: float = Body(..., embed=True),
+):
+    """
+    Simula o comportamento do sistema com um controlador PID customizado.
+
+    Retorna o tempo, a resposta do sistema controlado e valor do setpoint.
+    """
+    try:
+        time = service._time.astype(float)
+        plant = service.get_delayed_transfer_function()
+        pid = ctrl.tf([kp * ti * td, kp * ti, kp], [ti, 0])
+        closed_loop = ctrl.feedback(pid * plant)
+
+        reference = np.ones_like(time) * setpoint
+
+        t_out, y_out = ctrl.forced_response(closed_loop, T=time, U=reference)
+
+        return {
+            "mensagem": "Simulação com PID customizado realizada com sucesso.",
+            "tempo": t_out.tolist(),
+            "saida": y_out.tolist(),
+            "referencia": reference.tolist(),
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro na simulação PID: {str(e)}")

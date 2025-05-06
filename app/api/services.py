@@ -1,3 +1,4 @@
+from typing import Optional
 import numpy as np
 from numpy import ndarray
 import control as ctrl
@@ -108,12 +109,9 @@ class PidService:
 
         return response
 
-    def tune_pid(self, method: str) -> dict:
+    def tune_pid(self, method: str, lambda_: Optional[float] = None) -> dict:
         """
-        Realiza a sintonia PID com base no método especificado.
-
-        Retorna os parâmetros PID ajustados (kp, ti, td) e uma mensagem de sucesso.
-
+        Realiza a sintonia PID com base no método especificado (IMC ou ITAE).
         """
         if self._k == 0 or self._tau == 0:
             raise ValueError(
@@ -125,7 +123,7 @@ class PidService:
         theta = self._theta
 
         if method.lower() == "imc":
-            lambda_ = tau
+            lambda_ = lambda_ if lambda_ is not None else tau
 
             kp = (2 * tau + theta) / (k * (2 * lambda_ + theta))
             ti = (theta / 2) + tau
