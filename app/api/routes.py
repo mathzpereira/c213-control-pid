@@ -32,6 +32,33 @@ async def import_dataset(file: UploadFile = File(...)):
         )
 
 
+@router.get("/calculate_rmse")
+def calculate_rmse():
+    """
+    Calcula o RMSE (Root Mean Square Error) para os métodos Smith e Sundaresan.
+
+    Retorna:
+    - RMSE Smith
+    - RMSE Sundaresan
+    - Melhor método (menor erro)
+    """
+    try:
+        rmse_smith = service.calculate_rmse("smith")
+        rmse_sundaresan = service.calculate_rmse("sundaresan")
+
+        melhor = "smith" if rmse_smith < rmse_sundaresan else "sundaresan"
+
+        return {
+            "mensagem": "Cálculo de RMSE realizado com sucesso.",
+            "rmse_smith": rmse_smith,
+            "rmse_sundaresan": rmse_sundaresan,
+            "melhor_modelo": melhor,
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao calcular RMSE: {str(e)}")
+
+
 @router.post("/identify_model")
 async def identify_model(method: str = Query(...)):
     """

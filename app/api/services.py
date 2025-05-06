@@ -83,6 +83,21 @@ class PidService:
 
         return k, tau, theta
 
+    def calculate_rmse(self, method: str) -> float:
+        """
+        Calcula o RMSE (erro quadrático médio) entre a resposta real e a resposta simulada para o método informado.
+        """
+        if self._temperature is None:
+            raise ValueError("Dataset ainda não carregado.")
+
+        self.identification_method(method)
+
+        model_response = self.simulate_model_response()
+
+        mse = np.mean((self._temperature - model_response) ** 2)
+        rmse = np.sqrt(mse)
+        return float(round(rmse, 4))
+
     def simulate_model_response(self):
         """
         Simula a resposta do modelo de primeira ordem usando os parâmetros identificados.
