@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
+const apiUrl = import.meta.env.VITE_API_URL;
+
 export default function PIDControlSystem() {
   const [file, setFile] = useState(null);
   const [fileUploaded, setFileUploaded] = useState(false);
@@ -44,7 +46,7 @@ export default function PIDControlSystem() {
     formData.append('file', file);
     
     try {
-      const response = await fetch('http://localhost:8000/import_dataset', {
+      const response = await fetch(`${apiUrl}/import_dataset`, {
         method: 'POST',
         body: formData,
       });
@@ -71,7 +73,7 @@ export default function PIDControlSystem() {
     setLoading({ ...loading, identify: true });
     
     try {
-      const response = await fetch(`http://localhost:8000/identify_model?method=${identificationMethod}`, {
+      const response = await fetch(`${apiUrl}/identify_model?method=${identificationMethod}`, {
         method: 'POST',
       });
       
@@ -101,7 +103,7 @@ export default function PIDControlSystem() {
     setLoading({ ...loading, compare: true });
     
     try {
-      const response = await fetch('http://localhost:8000/compare_response');
+      const response = await fetch(`${apiUrl}/compare_response`);
       const data = await response.json();
       
       if (response.ok) {
@@ -130,7 +132,7 @@ export default function PIDControlSystem() {
     setLoading({ ...loading, tunePid: true });
     
     try {
-      const response = await fetch(`http://localhost:8000/tune_pid?method=${tuningMethod}`);
+      const response = await fetch(`${apiUrl}/tune_pid?method=${tuningMethod}`);
       const data = await response.json();
       
       if (response.ok) {
@@ -166,7 +168,7 @@ export default function PIDControlSystem() {
     setLoading({ ...loading, openLoop: true });
     
     try {
-      const response = await fetch(`http://localhost:8000/open_loop?method=${tuningMethod}`);
+      const response = await fetch(`${apiUrl}/open_loop?method=${tuningMethod}`);
       const data = await response.json();
       
       if (response.ok) {
@@ -193,7 +195,7 @@ export default function PIDControlSystem() {
     setLoading({ ...loading, closedLoop: true });
     
     try {
-      const response = await fetch(`http://localhost:8000/closed_loop?method=${tuningMethod}`);
+      const response = await fetch(`${apiUrl}/closed_loop?method=${tuningMethod}`);
       const data = await response.json();
       
       if (response.ok) {
@@ -220,7 +222,7 @@ export default function PIDControlSystem() {
     setLoading({ ...loading, customPid: true });
     
     try {
-      const response = await fetch('http://localhost:8000/custom_pid_simulation', {
+      const response = await fetch(`${apiUrl}/custom_pid_simulation`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
