@@ -136,11 +136,9 @@ def closed_loop_response(
         process = service.get_delayed_transfer_function()
         closed_loop = ctrl.feedback(controller * process)
 
-        t_out, y_out = ctrl.forced_response(
-            closed_loop,
-            T=np.array(service._time, dtype=float),
-            U=np.array(service._step, dtype=float),
-        )
+        time = service._time.astype(float)
+        step = service._step.astype(float)
+        t_out, y_out = ctrl.forced_response(closed_loop, T=time, U=step)
 
         return {
             "mensagem": f"Resposta da malha fechada com sintonia '{method}' gerada com sucesso.",
@@ -151,4 +149,37 @@ def closed_loop_response(
     except Exception as e:
         raise HTTPException(
             status_code=500, detail=f"Erro na resposta em malha fechada: {str(e)}"
+        )
+
+
+@router.get("/open_loop")
+def open_loop_response(
+    method: str = Query(..., description="Método de sintonia: 'imc' ou 'itae'"),
+):
+    """
+    Retorna a resposta em malha aberta usando o controlador sintonizado com o método especificado.
+    """
+    try:
+        response = service.tune_pid(method)
+        kp = response["kp"]
+        ti = response["ti"]
+        td = response["td"]
+
+        pid = ctrl.tf([kp * td * ti, kp * ti, kp], [ti, 0])
+        delayed_sys = service.get_delayed_transfer_function()
+        open_loop = ctrl.series(pid, delayed_sys)
+
+        time = service._time.astype(float)
+        step = service._step.astype(float)
+        t_out, y_out = ctrl.forced_response(open_loop, T=time, U=step)
+
+        return {
+            "mensagem": "Resposta em malha aberta gerada com sucesso.",
+            "tempo": t_out.tolist(),
+            "resposta": y_out.tolist(),
+        }
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Erro na resposta em malha aberta: {str(e)}"
         )

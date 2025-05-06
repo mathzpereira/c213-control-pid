@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
-  <title>Comparação de Resposta</title>
+  <title>Comparação de Respostas</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     body {
@@ -12,66 +12,85 @@
 
     canvas {
       max-width: 100%;
-      height: auto;
+      margin-top: 30px;
     }
 
-    #loadButton {
-      padding: 10px 20px;
+    select, button {
+      padding: 10px;
+      margin: 10px 0;
       font-size: 16px;
-      cursor: pointer;
     }
   </style>
 </head>
 <body>
-  <h1>Comparação de Resposta Real x Simulada</h1>
-  <button id="loadButton">Carregar gráfico</button>
-  <canvas id="responseChart"></canvas>
+  <h1>Comparação de Respostas do Sistema</h1>
+
+  <label for="methodSelect">Método de Sintonia:</label>
+  <select id="methodSelect">
+    <option value="imc">IMC</option>
+    <option value="itae">ITAE</option>
+  </select>
+
+  <button id="loadButton">Carregar Gráficos</button>
+
+  <h2>Resposta Real x Simulada</h2>
+  <canvas id="compareChart"></canvas>
+
+  <h2>Resposta em Malha Aberta</h2>
+  <canvas id="openLoopChart"></canvas>
+
+  <h2>Resposta em Malha Fechada</h2>
+  <canvas id="closedLoopChart"></canvas>
 
   <script>
     document.getElementById("loadButton").addEventListener("click", async () => {
+      const method = document.getElementById("methodSelect").value;
+
       try {
-        const response = await fetch("http://localhost:8000/compare_response");
-        const data = await response.json();
+        const compare = await fetch("http://localhost:8000/compare_response").then(res => res.json());
+        const open = await fetch(`http://localhost:8000/open_loop?method=${method}`).then(res => res.json());
+        const closed = await fetch(`http://localhost:8000/closed_loop?method=${method}`).then(res => res.json());
 
-        const ctx = document.getElementById("responseChart").getContext("2d");
+        plotChart("compareChart", compare.tempo, [
+          { label: "Real", data: compare.resposta_real, borderColor: "blue" },
+          { label: "Simulada", data: compare.resposta_modelo, borderColor: "red", borderDash: [5, 5] }
+        ]);
 
-        new Chart(ctx, {
-          type: 'line',
-          data: {
-            labels: data.tempo,
-            datasets: [
-              {
-                label: 'Resposta Real',
-                data: data.resposta_real,
-                borderColor: 'blue',
-                fill: false,
-              },
-              {
-                label: 'Resposta Simulada',
-                data: data.resposta_modelo,
-                borderColor: 'red',
-                borderDash: [5, 5],
-                fill: false,
-              }
-            ]
-          },
-          options: {
-            responsive: true,
-            scales: {
-              x: {
-                title: { display: true, text: 'Tempo (s)' }
-              },
-              y: {
-                title: { display: true, text: 'Temperatura (°C)' }
-              }
-            }
-          }
-        });
+        plotChart("openLoopChart", open.tempo, [
+          { label: "Malha Aberta", data: open.resposta, borderColor: "orange" }
+        ]);
 
-      } catch (error) {
-        alert("Erro ao buscar dados da API: " + error);
+        plotChart("closedLoopChart", closed.tempo, [
+          { label: "Malha Fechada", data: closed.resposta, borderColor: "green" }
+        ]);
+
+      } catch (err) {
+        alert("Erro ao carregar dados da API: " + err);
       }
     });
+
+    function plotChart(canvasId, labels, datasets) {
+      const ctx = document.getElementById(canvasId).getContext("2d");
+
+      new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels,
+          datasets: datasets.map(ds => ({
+            ...ds,
+            fill: false,
+            tension: 0.2
+          }))
+        },
+        options: {
+          responsive: true,
+          scales: {
+            x: { title: { display: true, text: 'Tempo (s)' } },
+            y: { title: { display: true, text: 'Temperatura (°C)' } }
+          }
+        }
+      });
+    }
   </script>
 </body>
 </html>
