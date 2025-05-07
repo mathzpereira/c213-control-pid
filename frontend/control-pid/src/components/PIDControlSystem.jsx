@@ -136,6 +136,8 @@ export default function PIDControlSystem() {
           theta: data.theta,
         })
         handleCompareResponse()
+        handleOpenLoopResponse()
+        handleClosedLoopResponse()
       } else {
         console.error("Identification failed:", data.detail)
         alert(`Identification failed: ${data.detail}`)
@@ -222,7 +224,7 @@ export default function PIDControlSystem() {
     setLoading({...loading, openLoop: true})
 
     try {
-      const response = await fetch(`${apiUrl}/open_loop?method=${tuningMethod}`)
+      const response = await fetch(`${apiUrl}/open_loop`)
       const data = await response.json()
 
       if (response.ok) {
@@ -251,9 +253,7 @@ export default function PIDControlSystem() {
     setLoading({...loading, closedLoop: true})
 
     try {
-      const response = await fetch(
-        `${apiUrl}/closed_loop?method=${tuningMethod}`,
-      )
+      const response = await fetch(`${apiUrl}/closed_loop`)
       const data = await response.json()
 
       if (response.ok) {

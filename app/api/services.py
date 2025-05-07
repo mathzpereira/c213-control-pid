@@ -168,6 +168,6 @@ class PidService:
         num_pade, den_pade = ctrl.pade(self._theta, 1)
         delay = ctrl.tf(num_pade, den_pade)
 
-        G_delay = G * delay
+        G_delay = ctrl.series(G, delay)
 
         return G_delay

@@ -154,27 +154,17 @@ def get_transfer_function():
 
 @router.get("/closed_loop")
 def closed_loop_response(
-    method: str = Query(..., description="Método de sintonia: imc ou itae"),
 ):
     """
-    Retorna a resposta da malha fechada com base na sintonia PID escolhida.
+    Retorna a resposta da malha fechada.
     """
     try:
-        response = service.tune_pid(method)
-        kp = response["kp"]
-        ti = response["ti"]
-        td = response["td"]
-
-        controller = ctrl.tf([kp * td * ti, kp * ti, kp], [ti, 0])
-        process = service.get_delayed_transfer_function()
-        closed_loop = ctrl.feedback(controller * process)
-
-        time = service._time.astype(float)
-        step = service._step.astype(float)
-        t_out, y_out = ctrl.forced_response(closed_loop, T=time, U=step)
+        open_loop = service.get_delayed_transfer_function()
+        closed_loop = ctrl.feedback(open_loop)
+        t_out, y_out = ctrl.step_response(closed_loop, T=service._time.astype(float))
 
         return {
-            "mensagem": f"Resposta da malha fechada com sintonia '{method}' gerada com sucesso.",
+            "mensagem": "Resposta da malha fechada gerada com sucesso.",
             "tempo": t_out.tolist(),
             "resposta": y_out.tolist(),
         }
@@ -187,24 +177,13 @@ def closed_loop_response(
 
 @router.get("/open_loop")
 def open_loop_response(
-    method: str = Query(..., description="Método de sintonia: 'imc' ou 'itae'"),
 ):
     """
-    Retorna a resposta em malha aberta usando o controlador sintonizado com o método especificado.
+    Retorna a resposta em malha aberta do sistema.
     """
     try:
-        response = service.tune_pid(method)
-        kp = response["kp"]
-        ti = response["ti"]
-        td = response["td"]
-
-        pid = ctrl.tf([kp * td * ti, kp * ti, kp], [ti, 0])
-        delayed_sys = service.get_delayed_transfer_function()
-        open_loop = ctrl.series(pid, delayed_sys)
-
-        time = service._time.astype(float)
-        step = service._step.astype(float)
-        t_out, y_out = ctrl.forced_response(open_loop, T=time, U=step)
+        open_loop = service.get_delayed_transfer_function()
+        t_out, y_out = ctrl.step_response(open_loop, T=service._time.astype(float))
 
         return {
             "mensagem": "Resposta em malha aberta gerada com sucesso.",
