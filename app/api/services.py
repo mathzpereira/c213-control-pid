@@ -59,6 +59,7 @@ class PidService:
 
         time = self._time
         temperature = self._temperature
+        temperature = temperature - temperature[0]
         step = self._step
 
         final_value = temperature[-1]
@@ -157,6 +158,7 @@ class PidService:
             "kp": round(kp, 4),
             "ti": round(ti, 4),
             "td": round(td, 4),
+            "setpoint": round(np.mean(self._step), 4),
         }
 
     def get_delayed_transfer_function(self):

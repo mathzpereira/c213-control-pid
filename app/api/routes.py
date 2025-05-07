@@ -83,7 +83,9 @@ def compare_response():
     Retorna a resposta real e a resposta simulada do modelo de primeira ordem.
     """
     try:
-        real = service._temperature.tolist()
+        real = service._temperature
+        real = real - real[0]
+        real = real.tolist()
         simulated = service.simulate_model_response().tolist()
         time = service._time.tolist()
 
@@ -161,7 +163,7 @@ def closed_loop_response(
     try:
         open_loop = service.get_delayed_transfer_function()
         closed_loop = ctrl.feedback(open_loop)
-        t_out, y_out = ctrl.step_response(closed_loop, T=service._time.astype(float))
+        t_out, y_out = ctrl.step_response(closed_loop * np.mean(service._step), T=service._time.astype(float))
 
         return {
             "mensagem": "Resposta da malha fechada gerada com sucesso.",
@@ -183,7 +185,7 @@ def open_loop_response(
     """
     try:
         open_loop = service.get_delayed_transfer_function()
-        t_out, y_out = ctrl.step_response(open_loop, T=service._time.astype(float))
+        t_out, y_out = ctrl.step_response(open_loop * np.mean(service._step), T=service._time.astype(float))
 
         return {
             "mensagem": "Resposta em malha aberta gerada com sucesso.",
@@ -213,11 +215,11 @@ def custom_pid_simulation(
         time = service._time.astype(float)
         plant = service.get_delayed_transfer_function()
         pid = ctrl.tf([kp * ti * td, kp * ti, kp], [ti, 0])
-        closed_loop = ctrl.feedback(pid * plant)
+        open_loop = ctrl.series(pid, plant)
+        closed_loop = ctrl.feedback(open_loop)
 
+        t_out, y_out = ctrl.step_response(closed_loop * np.mean(service._step), T=time)
         reference = np.ones_like(time) * setpoint
-
-        t_out, y_out = ctrl.forced_response(closed_loop, T=time, U=reference)
 
         return {
             "mensagem": "Simulação com PID customizado realizada com sucesso.",
