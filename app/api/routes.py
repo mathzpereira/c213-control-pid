@@ -215,7 +215,7 @@ def custom_pid_simulation(
     try:
         time = service._time.astype(float)
         plant = service.get_delayed_transfer_function(pade_order=pade_order)
-        pid = ctrl.tf([kp * ti * td, kp * ti, kp], [ti, 0])
+        pid = ctrl.tf([kp * td, kp, kp/ti], [1, 0])
         open_loop = ctrl.series(pid, plant)
         closed_loop = ctrl.feedback(open_loop)
 
