@@ -34,6 +34,7 @@ export default function PIDControlSystem() {
     rmse_sundaresan: 0,
     melhor_modelo: "-",
   })
+  const [lambda, setLambda] = useState()
   const [error, setError] = useState(null)
 
   // States para os dados das respostas
@@ -188,7 +189,11 @@ export default function PIDControlSystem() {
     setLoading({...loading, tunePid: true})
 
     try {
-      const response = await fetch(`${apiUrl}/tune_pid?method=${tuningMethod}`)
+      let url = `${apiUrl}/tune_pid?method=${tuningMethod}`
+      if (tuningMethod === "imc" && lambda !== undefined) {
+        url += `&lambda=${lambda}`
+      }
+      const response = await fetch(url)
       const data = await response.json()
 
       if (response.ok) {
@@ -203,6 +208,7 @@ export default function PIDControlSystem() {
           kp: data.kp,
           ti: data.ti,
           td: data.td,
+          setpoint: data.setpoint,
         }))
 
         handleOpenLoopResponse()
@@ -217,6 +223,10 @@ export default function PIDControlSystem() {
     } finally {
       setLoading({...loading, tunePid: false})
     }
+  }
+
+  const handleLambdaChange = (e) => {
+    setLambda(parseFloat(e.target.value))
   }
 
   // Malha aberta
@@ -428,6 +438,25 @@ export default function PIDControlSystem() {
               <option value="imc">IMC</option>
               <option value="itae">ITAE</option>
             </select>
+
+            {/* Campo de lambda que aparece apenas quando IMC está selecionado */}
+            {tuningMethod === "imc" && (
+              <div className="mb-2">
+                <label className="block text-sm font-medium text-gray-700">
+                  Lambda (λ)
+                </label>
+                <input
+                  type="number"
+                  value={lambda}
+                  onChange={handleLambdaChange}
+                  min="0.1"
+                  step="0.1"
+                  className="w-full p-2 border rounded mb-2"
+                  placeholder="Valor de lambda"
+                />
+              </div>
+            )}
+
             <button
               onClick={handleTunePid}
               disabled={modelParameters.k === 0 || loading.tunePid}
