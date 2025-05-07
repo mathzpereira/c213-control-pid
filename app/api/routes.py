@@ -205,6 +205,7 @@ def custom_pid_simulation(
     ti: float = Body(..., embed=True),
     td: float = Body(..., embed=True),
     setpoint: float = Body(..., embed=True),
+    pade_order: int = Body(20, embed=True),
 ):
     """
     Simula o comportamento do sistema com um controlador PID customizado.
@@ -213,7 +214,7 @@ def custom_pid_simulation(
     """
     try:
         time = service._time.astype(float)
-        plant = service.get_delayed_transfer_function()
+        plant = service.get_delayed_transfer_function(pade_order=pade_order)
         pid = ctrl.tf([kp * ti * td, kp * ti, kp], [ti, 0])
         open_loop = ctrl.series(pid, plant)
         closed_loop = ctrl.feedback(open_loop)

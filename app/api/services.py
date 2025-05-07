@@ -93,9 +93,11 @@ class PidService:
 
         self.identification_method(method)
 
+        temperature = self._temperature
+        temperature = temperature - temperature[0]
         model_response = self.simulate_model_response()
 
-        mse = np.mean((self._temperature - model_response) ** 2)
+        mse = np.mean((temperature - model_response) ** 2)
         rmse = np.sqrt(mse)
         return float(round(rmse, 4))
 
@@ -161,13 +163,13 @@ class PidService:
             "setpoint": round(np.mean(self._step), 4),
         }
 
-    def get_delayed_transfer_function(self):
+    def get_delayed_transfer_function(self, pade_order: int = 1) -> ctrl.TransferFunction:
         """
         Retorna a função de transferência com atraso (retardo) aproximado por Padé.
         """
         G = ctrl.tf([self._k], [self._tau, 1])
 
-        num_pade, den_pade = ctrl.pade(self._theta, 1)
+        num_pade, den_pade = ctrl.pade(self._theta, pade_order)
         delay = ctrl.tf(num_pade, den_pade)
 
         G_delay = ctrl.series(G, delay)

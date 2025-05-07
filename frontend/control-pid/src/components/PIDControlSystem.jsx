@@ -28,6 +28,7 @@ export default function PIDControlSystem() {
     ti: 1,
     td: 0.1,
     setpoint: 1,
+    pade_order: 20,
   })
   const [rmseData, setRmseData] = useState({
     rmse_smith: 0,
@@ -302,6 +303,7 @@ export default function PIDControlSystem() {
           ti: customPid.ti,
           td: customPid.td,
           setpoint: customPid.setpoint,
+          pade_order: customPid.pade_order,
         }),
       })
 
@@ -529,6 +531,17 @@ export default function PIDControlSystem() {
                 onChange={handleCustomPidChange}
                 className="w-full p-1 border rounded"
                 step="0.1"
+              />
+            </div>
+            <div className="mb-2">
+              <label className="block text-sm">Ordem de Pade</label>
+              <input
+                type="number"
+                name="pade_order"
+                value={customPid.pade_order}
+                onChange={handleCustomPidChange}
+                className="w-full p-1 border rounded"
+                step="1"
               />
             </div>
             <button
